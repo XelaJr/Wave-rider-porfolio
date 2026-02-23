@@ -1,5 +1,6 @@
 import { useRef } from 'react'
 import { useFrame } from '@react-three/fiber'
+import { useGLTF } from '@react-three/drei'
 import { RigidBody, CuboidCollider } from '@react-three/rapier'
 import * as THREE from 'three'
 import type { RapierRigidBody } from '@react-three/rapier'
@@ -12,6 +13,13 @@ const MAX_SPEED    = 15.0   // m/s — hard speed cap
 const LINEAR_DAMP  = 1.5   // higher = frena antes al soltar teclas
 const WATER_LINE   = 0.3   // how high above wave surface boat sits
 
+// Visual tuning — adjust if the model appears wrong size or direction
+const MODEL_SCALE    = 3.0          // scale up/down the mesh
+const MODEL_ROTATION = 0            // radians — rotate model to align prow with +X
+                                    // try Math.PI / 2 or Math.PI if faces wrong way
+
+const MODEL_PATH = '/models/LowPolySpeedBoatV1.glb'
+
 interface BoatProps {
   boatPositionRef: React.RefObject<THREE.Vector3>
   keysRef: React.RefObject<KeysRef>
@@ -21,6 +29,8 @@ export default function Boat({ boatPositionRef, keysRef }: BoatProps) {
   const rbRef     = useRef<RapierRigidBody>(null)
   const visualRef = useRef<THREE.Group>(null)
   const headingRef = useRef(0)
+
+  const { scene } = useGLTF(MODEL_PATH)
 
   // Hoisted scratch objects — zero GC in useFrame
   const _up    = useRef(new THREE.Vector3(0, 1, 0))
@@ -72,7 +82,7 @@ export default function Boat({ boatPositionRef, keysRef }: BoatProps) {
     // 6. Sync visual position
     vis.position.set(p.x, targetY, p.z)
 
-    // 8. Visual tilt: wave normal × heading quaternion
+    // 7. Visual tilt: wave normal × heading quaternion
     const [nx, ny, nz] = getWaveNormal(p.x, p.z, t)
     _waveN.current.set(nx, ny, nz)
     _qWave.current.setFromUnitVectors(_up.current, _waveN.current)
@@ -98,32 +108,16 @@ export default function Boat({ boatPositionRef, keysRef }: BoatProps) {
 
       {/* Visual group — driven manually from physics state */}
       <group ref={visualRef}>
-        {/* Hull */}
-        <mesh castShadow>
-          <boxGeometry args={[3, 0.5, 1.2]} />
-          <meshStandardMaterial color="#f0f0f0" roughness={0.4} metalness={0.1} />
-        </mesh>
-        {/* Red hull stripe */}
-        <mesh position={[0, -0.28, 0]}>
-          <boxGeometry args={[2.9, 0.07, 1.1]} />
-          <meshStandardMaterial color="#cc3333" roughness={0.5} />
-        </mesh>
-        {/* Cabin */}
-        <mesh castShadow position={[-0.3, 0.55, 0]}>
-          <boxGeometry args={[0.9, 0.6, 0.8]} />
-          <meshStandardMaterial color="#aaaaaa" roughness={0.5} />
-        </mesh>
-        {/* Windshield */}
-        <mesh position={[0.16, 0.62, 0]}>
-          <boxGeometry args={[0.05, 0.35, 0.75]} />
-          <meshStandardMaterial color="#88bbdd" roughness={0.1} metalness={0.3} transparent opacity={0.7} />
-        </mesh>
-        {/* Mast */}
-        <mesh position={[-0.3, 1.1, 0]}>
-          <cylinderGeometry args={[0.03, 0.03, 1.1, 6]} />
-          <meshStandardMaterial color="#888888" />
-        </mesh>
+        <primitive
+          object={scene}
+          scale={MODEL_SCALE}
+          rotation={[0, MODEL_ROTATION, 0]}
+          castShadow
+        />
       </group>
     </>
   )
 }
+
+// Preload the model so it's ready before the scene renders
+useGLTF.preload(MODEL_PATH)
