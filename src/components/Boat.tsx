@@ -6,10 +6,11 @@ import type { RapierRigidBody } from '@react-three/rapier'
 import { getWaveHeight, getWaveNormal } from '../utils/gerstnerWaves'
 import type { KeysRef } from '../hooks/useBoatControls'
 
-const THRUST_FORCE     = 18
-const TURN_RATE        = 1.8
-const DRAG_COEFFICIENT = 0.8
-const WATER_LINE       = 0.3   // how high above wave surface boat sits
+const THRUST_ACCEL = 10.0   // m/s² — acceleration when pressing W/S
+const TURN_RATE    = 1.8
+const MAX_SPEED    = 15.0   // m/s — hard speed cap
+const LINEAR_DAMP  = 1.5   // higher = frena antes al soltar teclas
+const WATER_LINE   = 0.3   // how high above wave surface boat sits
 
 interface BoatProps {
   boatPositionRef: React.RefObject<THREE.Vector3>
@@ -44,7 +45,6 @@ export default function Boat({ boatPositionRef, keysRef }: BoatProps) {
     const waveY = getWaveHeight(p.x, p.z, t)
     const targetY = waveY + WATER_LINE
     rb.setTranslation({ x: p.x, y: targetY, z: p.z }, true)
-    rb.setLinvel({ x: v.x, y: 0, z: v.z }, true)
 
     // 3. Publish position for camera + island proximity
     boatPositionRef.current.set(p.x, targetY, p.z)
@@ -53,17 +53,23 @@ export default function Boat({ boatPositionRef, keysRef }: BoatProps) {
     if (keys.left)  headingRef.current += TURN_RATE * delta
     if (keys.right) headingRef.current -= TURN_RATE * delta
 
-    // 5. Thrust along heading direction
-    const h = headingRef.current
-    const fx = Math.sin(h)
-    const fz = Math.cos(h)
-    if (keys.forward)  rb.addForce({ x:  fx * THRUST_FORCE,       y: 0, z:  fz * THRUST_FORCE      }, true)
-    if (keys.backward) rb.addForce({ x: -fx * THRUST_FORCE * 0.5, y: 0, z: -fz * THRUST_FORCE * 0.5 }, true)
+    // 5. Velocity control — damping + thrust in a single setLinvel (no addForce)
+    const h  = headingRef.current
+    const fx = Math.cos(h)
+    const fz = -Math.sin(h)
 
-    // 6. Horizontal drag (velocity-proportional)
-    rb.addForce({ x: -v.x * DRAG_COEFFICIENT, y: 0, z: -v.z * DRAG_COEFFICIENT }, false)
+    const damp = Math.exp(-LINEAR_DAMP * delta)
+    let vx = v.x * damp
+    let vz = v.z * damp
+    if (keys.forward)  { vx += fx * THRUST_ACCEL * delta; vz += fz * THRUST_ACCEL * delta }
+    if (keys.backward) { vx -= fx * THRUST_ACCEL * 0.5 * delta; vz -= fz * THRUST_ACCEL * 0.5 * delta }
 
-    // 7. Sync visual position
+    const hSpeed = Math.sqrt(vx * vx + vz * vz)
+    if (hSpeed > MAX_SPEED) { const s = MAX_SPEED / hSpeed; vx *= s; vz *= s }
+
+    rb.setLinvel({ x: vx, y: 0, z: vz }, true)
+
+    // 6. Sync visual position
     vis.position.set(p.x, targetY, p.z)
 
     // 8. Visual tilt: wave normal × heading quaternion
@@ -84,7 +90,7 @@ export default function Boat({ boatPositionRef, keysRef }: BoatProps) {
         ref={rbRef}
         position={[0, 0.5, 0]}
         lockRotations
-        linearDamping={1.5}
+        linearDamping={0}
         colliders={false}
       >
         <CuboidCollider args={[1.5, 0.25, 0.6]} />
