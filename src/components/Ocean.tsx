@@ -41,8 +41,8 @@ varying float vElevation;
 uniform float uTime;
 
 void main() {
-  vec3 deepColor    = vec3(0.0,  0.20, 0.45);
-  vec3 shallowColor = vec3(0.0,  0.50, 0.75);
+  vec3 deepColor    = vec3(0.0,  0.4, 0.5);
+  vec3 shallowColor = vec3(0.0,  0.75, 0.9);
   vec3 foamColor    = vec3(0.92, 0.97, 1.0);
 
   // Blend deep/shallow by elevation
@@ -50,12 +50,23 @@ void main() {
   vec3 color = mix(deepColor, shallowColor, t);
 
   // Foam on crests
-  float foam = smoothstep(0.25, 0.55, vElevation);
+  float foam = smoothstep(0.35, 0.90, vElevation);
   color = mix(color, foamColor, foam * 0.65);
 
-  // Subtle animated shimmer
-  float shimmer = sin(vWorldPos.x * 3.1 + uTime * 2.1)
-                * sin(vWorldPos.z * 2.6 + uTime * 1.8) * 0.04;
+  // Approximate surface normal from screen-space derivatives
+  vec3 dx = dFdx(vWorldPos);
+  vec3 dz = dFdy(vWorldPos);
+  vec3 normal = normalize(cross(dz, dx));
+
+  // Sun specular highlight
+  vec3 sunDir = normalize(vec3(0.6, 1.0, 0.4));
+  float spec = pow(max(dot(normal, sunDir), 0.0), 80.0) * 0.55;
+  color += vec3(spec);
+
+  // Incoherent shimmer — irrational frequency ratios break any grid pattern
+  float shimmer = sin(vWorldPos.x * 1.73 + vWorldPos.z * 0.97 + uTime * 2.1) * 0.018;
+  shimmer      += sin(vWorldPos.x * 0.83 + vWorldPos.z * 2.31 + uTime * 1.7) * 0.013;
+  shimmer      += sin(vWorldPos.x * 2.41 + vWorldPos.z * 1.37 + uTime * 2.9) * 0.010;
   color += shimmer;
 
   gl_FragColor = vec4(color, 0.93);
@@ -81,7 +92,7 @@ export default function Ocean() {
 
   return (
     <mesh rotation={[-Math.PI / 2, 0, 0]} receiveShadow material={material}>
-      <planeGeometry args={[500, 500, 256, 256]} />
+      <planeGeometry args={[500, 500, 1024, 1024]} />
     </mesh>
   )
 }
