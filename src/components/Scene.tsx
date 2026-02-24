@@ -10,23 +10,27 @@ import Lights from './Lights'
 
 const ISLANDS = [
   {
+    id: 'projects',
     name: 'Proyectos',
-    description: 'Acércate para explorar mi trabajo',
     position: [40, 0, 0] as [number, number, number],
   },
   {
+    id: 'about',
     name: 'Sobre Mí',
-    description: 'Acércate para conocer mi historia',
     position: [-35, 0, 45] as [number, number, number],
   },
   {
+    id: 'contact',
     name: 'Contacto',
-    description: 'Acércate para ponerte en contacto',
     position: [15, 0, -50] as [number, number, number],
   },
 ]
 
-export default function Scene() {
+interface SceneProps {
+  onIslandClick: (id: string) => void
+}
+
+export default function Scene({ onIslandClick }: SceneProps) {
   // Shared mutable position ref — passed to Boat (writer) and Island/Camera (readers)
   const boatPositionRef = useRef(new THREE.Vector3(0, 1, 0))
   const keysRef = useBoatControls()
@@ -38,11 +42,12 @@ export default function Scene() {
         <Boat boatPositionRef={boatPositionRef} keysRef={keysRef} />
         {ISLANDS.map((island) => (
           <Island
-            key={island.name}
+            key={island.id}
+            id={island.id}
             name={island.name}
-            description={island.description}
             position={island.position}
             boatPositionRef={boatPositionRef}
+            onIslandClick={onIslandClick}
           />
         ))}
       </Physics>

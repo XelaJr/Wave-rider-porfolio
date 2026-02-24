@@ -5,15 +5,16 @@ import { RigidBody } from '@react-three/rapier'
 import * as THREE from 'three'
 
 interface IslandProps {
+  id: string
   name: string
-  description: string
   position: [number, number, number]
   boatPositionRef: React.RefObject<THREE.Vector3>
+  onIslandClick: (id: string) => void
 }
 
 const PROXIMITY_RADIUS = 12
 
-export default function Island({ name, description, position, boatPositionRef }: IslandProps) {
+export default function Island({ id, name, position, boatPositionRef, onIslandClick }: IslandProps) {
   const showRef = useRef(false)
   const [, forceUpdate] = useReducer((x: number) => x + 1, 0)
   const islandPos = useRef(new THREE.Vector3(...position))
@@ -69,13 +70,17 @@ export default function Island({ name, description, position, boatPositionRef }:
         </mesh>
       ))}
 
-      {/* Proximity popup */}
+      {/* Proximity marker */}
       {showRef.current && (
-        <Html position={[0, 6, 0]} center>
-          <div className="island-popup">
-            <h2>{name}</h2>
-            <p>{description}</p>
-          </div>
+        <Html position={[0, 7, 0]} center>
+          <button
+            className="island-marker"
+            onClick={() => onIslandClick(id)}
+            aria-label={`Explorar ${name}`}
+          >
+            <span className="island-marker-diamond" />
+            <span className="island-marker-label">{name}</span>
+          </button>
         </Html>
       )}
     </group>
