@@ -4,24 +4,28 @@ import * as THREE from 'three'
 
 interface CameraRigProps {
   boatPositionRef: React.RefObject<THREE.Vector3>
+  isAutopilot?: boolean
 }
 
-const LERP_SPEED  = 0.05
-const CAMERA_OFFSET = new THREE.Vector3(15, 12, 15)
+const LERP_SPEED = 0.05
+const OFFSET_NORMAL   = new THREE.Vector3(15, 12, 15)
+const OFFSET_AUTOPILOT = new THREE.Vector3(12, 16, 12)
 
-export default function CameraRig({ boatPositionRef }: CameraRigProps) {
-  // Hoisted scratch refs — no allocation in useFrame
+export default function CameraRig({ boatPositionRef, isAutopilot = false }: CameraRigProps) {
   const targetPos  = useRef(new THREE.Vector3())
   const lookTarget = useRef(new THREE.Vector3())
+  const currentOffset = useRef(new THREE.Vector3().copy(OFFSET_NORMAL))
 
   useFrame(({ camera }) => {
     const boat = boatPositionRef.current
+    const desiredOffset = isAutopilot ? OFFSET_AUTOPILOT : OFFSET_NORMAL
 
-    // Desired camera position: boat + fixed world-space offset
-    targetPos.current.copy(boat).add(CAMERA_OFFSET)
+    // Smoothly interpolate between offsets
+    currentOffset.current.lerp(desiredOffset, 0.02)
+
+    targetPos.current.copy(boat).add(currentOffset.current)
     camera.position.lerp(targetPos.current, LERP_SPEED)
 
-    // Smooth look-at toward boat
     lookTarget.current.lerp(boat, LERP_SPEED)
     camera.lookAt(lookTarget.current)
   })

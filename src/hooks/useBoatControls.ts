@@ -5,6 +5,7 @@ export interface KeysRef {
   backward: boolean
   left: boolean
   right: boolean
+  anyPressed: boolean
 }
 
 /**
@@ -17,9 +18,15 @@ export function useBoatControls(): React.RefObject<KeysRef> {
     backward: false,
     left: false,
     right: false,
+    anyPressed: false,
   })
 
   useEffect(() => {
+    const update = () => {
+      const k = keysRef.current
+      k.anyPressed = k.forward || k.backward || k.left || k.right
+    }
+
     const onDown = (e: KeyboardEvent) => {
       switch (e.code) {
         case 'KeyW': case 'ArrowUp':    keysRef.current.forward  = true; break
@@ -27,6 +34,7 @@ export function useBoatControls(): React.RefObject<KeysRef> {
         case 'KeyA': case 'ArrowLeft':  keysRef.current.left     = true; break
         case 'KeyD': case 'ArrowRight': keysRef.current.right    = true; break
       }
+      update()
     }
     const onUp = (e: KeyboardEvent) => {
       switch (e.code) {
@@ -35,6 +43,7 @@ export function useBoatControls(): React.RefObject<KeysRef> {
         case 'KeyA': case 'ArrowLeft':  keysRef.current.left     = false; break
         case 'KeyD': case 'ArrowRight': keysRef.current.right    = false; break
       }
+      update()
     }
 
     window.addEventListener('keydown', onDown)
