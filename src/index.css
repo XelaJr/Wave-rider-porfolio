@@ -72,23 +72,6 @@ body {
   }
 }
 
-/* ── Mid-range island label ── */
-.island-label-distant {
-  font-family: 'IBM Plex Mono', monospace;
-  font-size: 0.6rem;
-  font-weight: 500;
-  color: rgba(200, 235, 255, 0.6);
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-  white-space: nowrap;
-  background: rgba(2, 8, 20, 0.4);
-  padding: 2px 6px;
-  border-radius: 3px;
-  backdrop-filter: blur(4px);
-  border: 1px solid rgba(30, 100, 200, 0.15);
-  pointer-events: none;
-}
-
 /* ── Island Panel ── */
 .island-panel {
   position: fixed;

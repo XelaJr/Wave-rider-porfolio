@@ -5,15 +5,17 @@ import { useTranslation } from '../i18n/translations'
 import { ISLANDS } from '../data/islandPositions'
 
 const MAP_SIZE = 160
-// World bounds for mapping
-const WORLD_X_MIN = -10
-const WORLD_X_MAX = 70
-const WORLD_Z_MIN = -30
-const WORLD_Z_MAX = 40
+// Rotated world bounds — accounts for 45° diagonal camera angle
+const ROT_X_MIN = -12
+const ROT_X_MAX = 48
+const ROT_Z_MIN = -8
+const ROT_Z_MAX = 58
 
 function worldToMap(wx: number, wz: number): [number, number] {
-  const mx = ((wx - WORLD_X_MIN) / (WORLD_X_MAX - WORLD_X_MIN)) * MAP_SIZE
-  const my = ((wz - WORLD_Z_MIN) / (WORLD_Z_MAX - WORLD_Z_MIN)) * MAP_SIZE
+  const rotX = (wx - wz) / Math.SQRT2  // aligns with screen-right
+  const rotZ = (wx + wz) / Math.SQRT2  // aligns with screen-down
+  const mx = ((rotX - ROT_X_MIN) / (ROT_X_MAX - ROT_X_MIN)) * MAP_SIZE
+  const my = ((rotZ - ROT_Z_MIN) / (ROT_Z_MAX - ROT_Z_MIN)) * MAP_SIZE
   return [mx, my]
 }
 

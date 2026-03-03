@@ -1,8 +1,9 @@
-import { useRef, useReducer, useMemo } from 'react'
+import { useRef, useReducer } from 'react'
 import { useFrame } from '@react-three/fiber'
 import { Html } from '@react-three/drei'
 import { RigidBody } from '@react-three/rapier'
 import * as THREE from 'three'
+import { useNav } from '../store/navigationStore'
 
 interface IslandProps {
   id: string
@@ -15,8 +16,6 @@ interface IslandProps {
 }
 
 const PROXIMITY_RADIUS = 12
-const MID_RANGE_MIN = 12
-const MID_RANGE_MAX = 50
 
 export default function Island({
   id,
@@ -28,9 +27,10 @@ export default function Island({
   isNextTarget = false,
 }: IslandProps) {
   const showRef = useRef(false)
-  const midRangeRef = useRef(false)
   const [, forceUpdate] = useReducer((x: number) => x + 1, 0)
   const islandPos = useRef(new THREE.Vector3(...position))
+  const nav = useNav()
+  const isPanelOpen = nav.activeIsland === id
 
   // Beacon color based on visited state
   const beaconColor = visited ? '#2a5a3a' : '#60c0ff'
@@ -39,11 +39,9 @@ export default function Island({
   useFrame(() => {
     const dist = boatPositionRef.current.distanceTo(islandPos.current)
     const shouldShow = dist < PROXIMITY_RADIUS
-    const shouldMidRange = dist >= MID_RANGE_MIN && dist < MID_RANGE_MAX
 
-    if (shouldShow !== showRef.current || shouldMidRange !== midRangeRef.current) {
+    if (shouldShow !== showRef.current) {
       showRef.current = shouldShow
-      midRangeRef.current = shouldMidRange
       forceUpdate()
     }
   })
@@ -114,15 +112,8 @@ export default function Island({
         </mesh>
       )}
 
-      {/* Mid-range label (visible 12-50m) */}
-      {midRangeRef.current && (
-        <Html position={[0, 10, 0]} center>
-          <div className="island-label-distant">{name}</div>
-        </Html>
-      )}
-
       {/* Proximity marker (< 12m) */}
-      {showRef.current && (
+      {showRef.current && !isPanelOpen && (
         <Html position={[0, 7, 0]} center>
           <button
             className="island-marker"
